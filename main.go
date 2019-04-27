@@ -26,11 +26,14 @@ func main() {
 	// Node name
 	nodeName := "nodeABC"
 
+	// Log file path
+	logFilePath := "/var/log/secure"
+
 	// init time, save the app start time
 	initTime := time.Now()
 
 	// Tail -f for /var/log/secure
-	t, err := tail.TailFile("/var/log/secure", tail.Config{Follow: true})
+	t, err := tail.TailFile(logFilePath, tail.Config{Follow: true})
 
 	// Throw an error
 	if err != nil {
