@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -11,13 +15,16 @@ import (
 
 func main() {
 	// Host for master either IP or Domain
-	masterHost := "localhost"
+	masterHost := "atlanta.local"
 
 	// Port for master
 	masterPort := "8888"
 
 	// Combined host & Port for master
-	masterURL := "http://" + masterHost + masterPort
+	masterURL := "http://" + masterHost + ":" + masterPort
+
+	// Node name
+	nodeName := "nodeABC"
 
 	// init time, save the app start time
 	initTime := time.Now()
@@ -48,27 +55,43 @@ func main() {
 
 			// Check if log Contains Invalid
 			if strings.Contains(line.Text, "Invalid") {
-
+				status := "0"
 				fmt.Println(message("Invalid", ipLogged, logTimeString))
-				sendSignal(masterURL)
+				sendSignal(masterURL, nodeName, ipLogged, status, logTimeDateAdd)
 				// Check if log Contains Accepted
 			} else if strings.Contains(line.Text, "Accepted") {
-
+				status := "1"
 				fmt.Println(message("Accepted", ipLogged, logTimeString))
-				sendSignal(masterURL)
+				sendSignal(masterURL, nodeName, ipLogged, status, logTimeDateAdd)
 			}
 		}
 	}
 }
 
 // Function for combine variable to message
-func message(status string, ipLogged string, logTimeString string) string {
+func message(status, ipLogged, logTimeString string) string {
 	atlantaMessage := logTimeString + " " + status + " login from " + ipLogged
-
 	return atlantaMessage
 }
 
 // Function to send post
-func sendSignal(masterHost string) {
+func sendSignal(masterURL, nodeName, ipLogged, status string, logTimeDateAdd time.Time) {
+	//fmt.Println(logTimeDateAdd)
+	datePOST := logTimeDateAdd.Format("2006-01-02")
+	data := url.Values{
+		"node":   {nodeName},
+		"ip":     {ipLogged},
+		"status": {status},
+		"date":   {datePOST},
+		"signal": {"true"},
+	}
+	// send POST to master
+	resp, err := http.PostForm(masterURL, data)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
+	var result map[string]interface{}
+
+	json.NewDecoder(resp.Body).Decode(&result)
 }
